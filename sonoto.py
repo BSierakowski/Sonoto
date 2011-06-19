@@ -1,6 +1,9 @@
-import ConfigParser, getopt, os, sys, twitter
+import ConfigParser, getopt, os, sys, twitter, stackexchange 
 
-USAGE = '''Usage: tweet [options] message'''
+USAGE = '''Usage: tweet StackOverflow#'''
+
+so = stackexchange.Site(stackexchange.StackOverflow)
+so_user = so.user(sys.argv[1:])
 
 def PrintUsageAndExit():
     print USAGE
@@ -20,8 +23,8 @@ class TweetRc(object):
         return self._GetOption('access_key')
         
     def GetAccessSecret(self):
-        return self._GetOption('access_secret')
-        
+        return self._GetOption('access_secret')       
+       
     def _GetOption(self, option):
         try:
             return self._GetConfig().get('Tweet', option)
@@ -35,8 +38,9 @@ class TweetRc(object):
         return self._config
        
 def main():
-    args = sys.argv[1:]
-    message = ' '.join(args)
+    display_name = so_user.display_name
+    reputation = so_user.reputation.format()
+    message = "Stack Overflow User: " + display_name + "  Reputation: " + reputation
     rc = TweetRc()
     consumer_key = rc.GetConsumerKey()
     consumer_secret = rc.GetConsumerSecret()
