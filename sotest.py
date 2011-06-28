@@ -12,7 +12,7 @@ allquestions = user.questions.fetch()
 if os.path.isfile("soquestions.db") == False:
     print "Creating soquestions database."
     con = sqlite3.connect('soquestions.db') # Warning: This file is created in the current directory
-    con.execute("CREATE TABLE so (id INTEGER PRIMARY KEY, questionid INTEGER, numberofanswers INTEGER)")
+    con.execute("CREATE TABLE so (questionid INTEGER, numberofanswers INTEGER)")
     con.commit()
 else:
     print "Database exists, checking number of questions."
@@ -38,19 +38,25 @@ if numberofquestions == dbquestioncount:
     print "No Changes!"
 elif dbquestioncount > allquestions:
     print "There's a problem!"
-else:
+elif dbquestioncount < allquestions:
+    conn = sqlite3.connect('soquestions.db')
+    c = conn.cursor()
+
     for entry in allquestions:
         questionid = entry.id
         answers = site.question(questionid).answers
         numberofanswers = len(answers)
-        conn = sqlite3.connect('soquestions.db')
-        c = conn.cursor()
-        c.execute("INSERT INTO so (questionid,numberofanswers) VALUES (?,?)", (questionid,numberofanswers))
-        conn.commit()
-        conn.close()
-        print "Current count: %d" % count
-        print "Current Question ID: %d" % questionid
+        
+        print "Inserting question ID: %d" % questionid
         print "Number of answers: %d" % numberofanswers
         print " "
-        count += 1     
+        c.execute("REPLACE INTO so (questionid,numberofanswers) VALUES (?,?)", (questionid,numberofanswers))
+        conn.commit()
+    count += 1    
+    conn.close()
+
+else:
+    print "Well that's not supposed to happen." 
+
+
 
