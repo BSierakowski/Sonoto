@@ -1,1 +1,7 @@
 Sonoto is a python script that monitors your Stack Overflow threads and notifies you on twitter when they're updated with additional comments or answers.
+
+Todo:
+
+Make one trip to API and DB in the beginning, use and modify lists from that point forward
+Check to see if number of answers have changed
+Tweet upon DB update!
