@@ -1,12 +1,11 @@
 import stackexchange 
 import sqlite3
 import os.path
-import create_db
 
 site = stackexchange.Site("api.stackoverflow.com")
 
 user = site.user(637160)
-allquestions = user.questions.fetch()
+all_questions_from_so_api_list = user.questions.fetch()
 
 #DB Check
 if os.path.isfile("soquestions.db") == False:
@@ -19,40 +18,54 @@ else:
 
 
     
-numberofquestions = len(allquestions)
-print "number of questions for %s on SO: %d" % (user.display_name, numberofquestions)
+number_questions_so_api = len(all_questions_from_so_api_list)
+print "number of questions for %s on SO: %d" % (user.display_name, number_questions_so_api)
 
-dbquestioncount = 0
+number_questions_db = 0
 
 conn = sqlite3.connect('soquestions.db')
 c = conn.cursor()
 c.execute('select * from so')
 for rows in c:
-    dbquestioncount += 1
+    number_questions_db += 1
     
-print "number of questions for user in DB: %d" % (dbquestioncount)
+print "number of questions for user in DB: %d" % (number_questions_db)
 
-count = 0 
-
-if numberofquestions == dbquestioncount:
+if number_questions_so_api == number_questions_db:
     print "No Changes!"
-elif dbquestioncount > allquestions:
+elif number_questions_db > number_questions_so_api:
     print "There's a problem!"
-elif dbquestioncount < allquestions:
-    conn = sqlite3.connect('soquestions.db')
-    c = conn.cursor()
+elif number_questions_db < number_questions_so_api:
+    all_db_question_ids = []
+    number_of_answers_db = []
+    all_api_question_ids = []
+    number_of_answers_api = []
+    missing_questions = []
 
-    for entry in allquestions:
-        questionid = entry.id
-        answers = site.question(questionid).answers
-        numberofanswers = len(answers)
-        
-        print "Inserting question ID: %d" % questionid
-        print "Number of answers: %d" % numberofanswers
+    for db_question_ids in c.execute('SELECT questionid FROM so').fetchall():
+        all_db_question_ids.append(db_question_ids[0])
+
+    for each_answer in all_db_question_ids:
+        number_of_answers_db.append(len(site.question(each_answer).answers))
+
+    for entry in all_questions_from_so_api_list:
+        all_api_question_ids.append(entry.id)
+
+    for each_answer in all_api_question_ids:
+        number_of_answers_api.append(len(site.question(each_answer).answers))
+
+    db_tuple = list(zip(all_db_question_ids,number_of_answers_db))
+    api_tuple = list(zip(all_api_question_ids,number_of_answers_api))
+
+    missing_questions = list(set(api_tuple) - set(db_tuple))
+
+    for ids in missing_questions:
+        print "Inserting question ID: %d" % ids[0]
+        print "Number of answers: %d" % ids[1]
         print " "
-        c.execute("REPLACE INTO so (questionid,numberofanswers) VALUES (?,?)", (questionid,numberofanswers))
-        conn.commit()
-    count += 1    
+        c.execute("INSERT INTO so (questionid,numberofanswers) VALUES (?,?)", (ids[0],ids[1]))           
+     
+    conn.commit()
     conn.close()
 
 else:
