@@ -47,83 +47,78 @@ number_of_answers_api = [len(site.question(each_answer).answers) for each_answer
 total_number_answers_api = sum(number_of_answers_api)
 api_tuple = list(zip(all_api_question_ids,number_of_answers_api))
 
-# Status!
-print "Current Status:"
-print "number of questions for %s on SO: %d" % (user.display_name, number_questions_so_api)    
-print "number of questions for user in DB: %d" % (number_questions_db)
+questions_to_add = list(set(api_tuple) - set(db_tuple))
+questions_to_delete = list(set(db_tuple) - set(api_tuple))
+sorted_questions_to_add = sorted(questions_to_add)
+sorted_questions_to_delete = sorted(questions_to_delete)
+
+# Question Status!
+print "Current Question Status:"
+print "Total number of questions for %s on SO: %d" % (user.display_name, number_questions_so_api)    
+print "Total number of questions for %s in DB: %d" % (user.display_name, number_questions_db)
 print " "
 
 # Check for new Questions
 if number_questions_so_api == number_questions_db:
     print "No new questions!"
     print " "
-elif number_questions_db > number_questions_so_api:
-    print "Deleting Questions:"
-    print "-------------------"
-    print " "
-
-    missing_questions = list(set(db_tuple) - set(api_tuple))
-         
-    for ids in missing_questions:
-        print "Deleting question ID: %d" % ids[0]
-        print "Number of answers: %d" % ids[1]
-        print " "
-        c.execute("DELETE FROM so WHERE questionid = ?", (ids[0], ))
-        conn.commit()
-    
 elif number_questions_db < number_questions_so_api:
     print "Adding Questions:"
     print "-----------------"
     print " "
-       
-    missing_questions = list(set(api_tuple) - set(db_tuple))
-     
-    for ids in missing_questions:
+    for ids in questions_to_add:
         print "Inserting question ID: %d" % ids[0]
         print "Number of answers: %d" % ids[1]
         print " "
         c.execute("INSERT INTO so (questionid,numberofanswers) VALUES (?,?)", (ids[0],ids[1]))           
         conn.commit()
+elif number_questions_db > number_questions_so_api:
+    print "Deleting Questions:"
+    print "-------------------"
+    print " "
+    for ids in questions_to_delete:
+        print "Deleting question ID: %d" % ids[0]
+        print "Number of answers: %d" % ids[1]
+        print " "
+        c.execute("DELETE FROM so WHERE questionid = ?", (ids[0], ))
+        conn.commit()    
+
+# Update values if questions were added or removed
+number_of_answers_db = [number_answers_db[0] for number_answers_db in c.execute('SELECT numberofanswers FROM so').fetchall()]
+total_number_answers_db = sum(number_of_answers_db)
+delete_list = []
+for i in sorted_questions_to_delete:
+    delete_list.append(i[0])
+    delete_list.append(i[1])
+add_list = []      
+for i in sorted_questions_to_add:
+    add_list.append(i[0])
+    add_list.append(i[1])
+both_lists = []
+count = 0
+for i in delete_list:
+    both_lists.append(delete_list[count])
+    both_lists.append(add_list[count])
+    count += 1
+final_list = zip(*[iter(both_lists)]*4)
+
       
-        
-# Check for new Answers - if total number of answers are higher, find higher value and replace
-print total_number_answers_api
-print total_number_answers_db
+# Answer Status!
+print "Current Answer Status:"
+print "Total number of answers for %s on SO: %d" % (user.display_name, total_number_answers_api)    
+print "Total number of answers for %s in DB: %d" % (user.display_name, total_number_answers_db)
+print " "
 
 if total_number_answers_api == total_number_answers_db:
     print "No new answers!"
     print " "
-elif total_number_answers_db > total_number_answers_api:
-    print "Deleting Answers:"
-    print "-------------------"
+elif total_number_answers_db != total_number_answers_api:
+    print "Updating Answers:"
+    print "---------------"
     print " "
-
-    missing_questions = list(set(db_tuple) - set(api_tuple))
-         
-    for ids in missing_questions:
-        print "Updating question ID: %d" % ids[0]
-        print "Number of answers: %d" % ids[1]
-        print " "
-        c.execute("DELETE FROM so WHERE questionid = ?", (ids[0], ))
+    for values in final_list:
+        print "Updating answer count in id %d from %d to %d" % (values[0], values[2], values[3]) 
+        c.execute("UPDATE so SET numberofanswers=? WHERE questionid=?", (values[3],values[0]))
         conn.commit()
-    
-elif number_questions_db < number_questions_so_api:
-    print "Adding Answers:"
-    print "-----------------"
-    print " "
-       
-    missing_questions = list(set(api_tuple) - set(db_tuple))
-     
-    for ids in missing_questions:
-        print "Updating question ID: %d" % ids[0]
-        print "Number of answers: %d" % ids[1]
-        print " "
-        c.execute("INSERT INTO so (questionid,numberofanswers) VALUES (?,?)", (ids[0],ids[1]))           
-        conn.commit() 
         
-
-
-
 conn.close()
-
-
