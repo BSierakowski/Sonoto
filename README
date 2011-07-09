@@ -2,6 +2,5 @@ Sonoto is a python script that monitors your Stack Overflow threads and notifies
 
 Todo:
 
-Make one trip to API and DB in the beginning, use and modify lists from that point forward
-Check to see if number of answers have changed
-Tweet upon DB update!
+Refactor and remove duplicates
+Fix index error on line 169 when question is deleted from SO
